@@ -1,0 +1,26 @@
+tuner:
+  parameters_bounds:
+    kp_lower_bound: 1
+    kp_upper_bound: 25
+    ki_lower_bound: 0.0
+    ki_upper_bound: 1.0
+    kd_lower_bound: 0.0
+    kd_upper_bound: 1.0
+
+  constraint:
+    overshoot_lower_bound: 0.0
+    overshoot_upper_bound: 30
+    rise_time_lower_bound: 0.0
+    rise_time_upper_bound: 1000 # ms
+
+  n_iterations: 150
+  experiment_total_run_time: 5000 # ms
+  setpoint: 90
+
+
+  # DE or BO
+  optimizer: "DE"
+  # one of [0, 1, 2, 3, 4, 5]
+  init_state: 0
+  # 0 -> balanced, 1 -> exploration, 2 -> exploitation
+  configuration: 0
