@@ -9,6 +9,8 @@ from random import randint
 from typing import Dict, List, OrderedDict, Tuple, Union
 
 import numpy as np
+if not hasattr(np, 'float'): # noqa
+    np.float = float # noqa
 import pandas as pd
 import rclpy
 from rclpy.node import Node
@@ -23,7 +25,7 @@ from .tuner_helpers import (
     calculate_settling_time,
     results_columns,
 )
-from .tuner_utils import load_init_states
+from .tuner_loader import load_init_states
 
 logger = logging.getLogger(__name__)
 
@@ -237,7 +239,7 @@ class DifferentialEvolutionOptimizer:
 
         # Gains
         kp, ki, kd = gains
-        ANGULAR_SPEED_LIMIT = 0.5   # or whatever
+        # ANGULAR_SPEED_LIMIT = 100.0   # or whatever
         TOLERANCE_DEG = 2.0
         target_angle_deg = self.set_point
 
@@ -245,8 +247,8 @@ class DifferentialEvolutionOptimizer:
         angle_values = []
 
         # 1) Create a short-lived ROS node
-        rclpy.init()
-        node = ShortExperimentNode(kp, ki, kd, target_angle_deg, ANGULAR_SPEED_LIMIT, TOLERANCE_DEG)
+        # rclpy.init()
+        node = ShortExperimentNode(kp, ki, kd, target_angle_deg, TOLERANCE_DEG)
         
         # 2) Spin for the desired total_run_time (ms) or until done
         #    We'll break early if the node sets "done" flag
@@ -262,12 +264,13 @@ class DifferentialEvolutionOptimizer:
 
         # 4) Destroy the node to end the experiment
         node.destroy_node()
-        rclpy.shutdown()
+        # rclpy.shutdown()
 
         # error_values is simply angle - set_point
         # so for each angle in angle_values, error = angle - set_point
         # We'll skip storing the entire error array here, just return angle_values
-        return [], angle_values
+        error_values = [angle - self.set_point for angle in angle_values]
+        return error_values, angle_values
 
     def log_trial_results(
         self,
@@ -288,7 +291,7 @@ class DifferentialEvolutionOptimizer:
             "kp": kp,
             "ki": ki,
             "kd": kd,
-            "overshoot": overshoot,
+            "overshoot": overshoot, 
             "rise_time": rise_time,
             "settling_time": settling_time,
             "angle_values": [angle_values],  # store entire list in one cell
@@ -332,13 +335,11 @@ class DifferentialEvolutionOptimizer:
 
 class ShortExperimentNode(Node):
     """
-    A short-lived node to replicate the 'rotate_in_place' logic inline.
-    
-    If your real system already has a long-running node, 
-    you'd incorporate the PID logic there. This is just a self-contained example.
+    A short-lived node to replicate the 'rotate_in_place' logic inline,
+    but resets the yaw angle each time you call 'reset_experiment()'.
     """
 
-    def __init__(self, kp, ki, kd, target_angle_deg, angular_speed_limit, tolerance_deg):
+    def __init__(self, kp, ki, kd, target_angle_deg, tolerance_deg):
         super().__init__('short_experiment_node')
 
         # Gains & config
@@ -346,7 +347,6 @@ class ShortExperimentNode(Node):
         self.ki = ki
         self.kd = kd
         self.target_angle_deg = target_angle_deg
-        self.angular_speed_limit = angular_speed_limit
         self.tolerance_deg = tolerance_deg
 
         # Robot state
@@ -368,19 +368,32 @@ class ShortExperimentNode(Node):
         )
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
 
+        # EXAMPLE usage: call reset_experiment() here or whenever you want to re-zero yaw
+        self.reset_experiment()
+
+    def reset_experiment(self):
+        """
+        Resets the experiment so that on the next odom reading,
+        we treat that yaw reading as 0.0.
+        """
+        self.get_logger().info("Resetting experiment state...")
+        self.offset_deg = None
+        self.done_rotating = False
+        self.integral_error = 0.0
+        self.previous_error = 0.0
+
     def odom_callback(self, msg: Odometry):
         # Convert quaternion to yaw
         q = msg.pose.pose.orientation
         _, _, yaw = euler_from_quaternion([q.x, q.y, q.z, q.w])
         yaw_deg = math.degrees(yaw)
 
-        # Normalize to [-180, 180]
-        while yaw_deg > 180:
-            yaw_deg -= 360
-        while yaw_deg < -180:
+        # make between [0, 360]
+        if yaw_deg < 0:
             yaw_deg += 360
 
-        # Set offset on first reading
+
+        # Set offset on first reading after reset
         if self.offset_deg is None:
             self.offset_deg = yaw_deg
             self.initial_heading_deg = 0.0
@@ -389,12 +402,12 @@ class ShortExperimentNode(Node):
         # Current heading (relative to initial)
         self.current_heading_deg = yaw_deg - self.offset_deg
 
-        # Run PID update on each odom
+        # Run PID update on each odom message
         self._update_pid_control()
 
     def _update_pid_control(self):
+        # If not yet initialized, skip
         if self.initial_heading_deg is None:
-            # No offset set yet
             return
 
         # Compute error
@@ -404,13 +417,13 @@ class ShortExperimentNode(Node):
 
         # Check if within tolerance
         if abs(error) <= self.tolerance_deg:
-            # Stop
+            # Stop the robot
             self.stop_robot()
             self.done_rotating = True
             self.get_logger().info("Rotation complete.")
             return
 
-        # PID
+        # PID calculations
         self.integral_error += error
         d_error = error - self.previous_error
         self.previous_error = error
@@ -420,10 +433,8 @@ class ShortExperimentNode(Node):
         d_term = self.kd * d_error
 
         angular_z = p_term + i_term + d_term
-        # Clamp
-        angular_z = max(-self.angular_speed_limit, min(self.angular_speed_limit, angular_z))
 
-        # Publish
+        # Publish the computed angular velocity
         twist_msg = Twist()
         twist_msg.linear.x = 0.0
         twist_msg.angular.z = angular_z

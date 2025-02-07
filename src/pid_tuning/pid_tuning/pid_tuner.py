@@ -26,7 +26,7 @@ class PIDTuner(Node):
     def __init__(self):
         super().__init__('pid_tuner_node')
 
-        self.selected_optimizer = get_config("optimizer")
+        self.selected_optimizer = get_config("tuner.optimizer")
         self.get_logger().info(f"Selected optimizer: {self.selected_optimizer}")
 
         self.optimizer = select_optimizer(self.selected_optimizer)

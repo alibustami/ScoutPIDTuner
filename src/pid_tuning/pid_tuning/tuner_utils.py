@@ -10,33 +10,12 @@ from typing import List, Union
 import psutil
 
 from .tuner_configs import get_config
+import numpy as np
+if not hasattr(np, 'float'): # noqa
+    np.float = float # noqa
 from .bo_optimizer import BayesianOptimizer
 from .de_optimizer import DifferentialEvolutionOptimizer
 
-
-def load_init_states(json_path: str) -> List[List[float]]:
-    """
-    Load the initial states from the given JSON file.
-
-    Parameters
-    ----------
-    json_path : str
-        Path to the JSON file containing the initial states.
-
-    Returns
-    -------
-    List[List[float]]
-        A list of lists, each representing [Kp, Ki, Kd] initial states.
-    """
-    with open(json_path, "r") as f:
-        init_states = json.load(f)
-
-    init_states_list = []
-    for value in init_states.values():
-        # each 'value' is a string like "[25.0,0.001,0.001]", so we can eval
-        init_states_list.append(eval(value))
-
-    return init_states_list
 
 
 def monitor_resources(func):
@@ -106,21 +85,21 @@ def select_optimizer(selected_optimizer: str) -> Union[DifferentialEvolutionOpti
     Union[DifferentialEvolutionOptimizer, BayesianOptimizer]
         An instance of the selected optimizer, configured from tuner_configs.
     """
-    set_point = get_config("setpoint")
+    set_point = get_config("tuner.setpoint")
 
     # Construct parameter bounds from config
     params_bounds = {
         "Kp": (
-            get_config("parameters_bounds.kp_lower_bound"),
-            get_config("parameters_bounds.kp_upper_bound"),
+            get_config("tuner.parameters_bounds.kp_lower_bound"),
+            get_config("tuner.parameters_bounds.kp_upper_bound"),
         ),
         "Ki": (
-            get_config("parameters_bounds.ki_lower_bound"),
-            get_config("parameters_bounds.ki_upper_bound"),
+            get_config("tuner.parameters_bounds.ki_lower_bound"),
+            get_config("tuner.parameters_bounds.ki_upper_bound"),
         ),
         "Kd": (
-            get_config("parameters_bounds.kd_lower_bound"),
-            get_config("parameters_bounds.kd_upper_bound"),
+            get_config("tuner.parameters_bounds.kd_lower_bound"),
+            get_config("tuner.parameters_bounds.kd_upper_bound"),
         ),
     }
 
@@ -128,21 +107,21 @@ def select_optimizer(selected_optimizer: str) -> Union[DifferentialEvolutionOpti
     constraint_bounds = OrderedDict([
         (
             "overshoot",
-            (get_config("constraint.overshoot_lower_bound"),
-             get_config("constraint.overshoot_upper_bound")),
+            (get_config("tuner.constraint.overshoot_lower_bound"),
+             get_config("tuner.constraint.overshoot_upper_bound")),
         ),
         (
             "risetime",
-            (get_config("constraint.rise_time_lower_bound"),
-             get_config("constraint.rise_time_upper_bound")),
+            (get_config("tuner.constraint.rise_time_lower_bound"),
+             get_config("tuner.constraint.rise_time_upper_bound")),
         ),
     ])
 
     # Common settings
-    n_iterations = get_config("n_iterations")
-    experiment_total_run_time = get_config("experiment_total_run_time")
-    selected_init_state = get_config("init_state")
-    selected_config = get_config("configuration")
+    n_iterations = get_config("tuner.n_iterations")
+    experiment_total_run_time = get_config("tuner.experiment_total_run_time")
+    selected_init_state = get_config("tuner.init_state")
+    selected_config = get_config("tuner.configuration")
 
     if selected_optimizer == "BO":
         optimizer = BayesianOptimizer(

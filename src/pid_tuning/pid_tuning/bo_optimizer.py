@@ -14,6 +14,9 @@ from nav_msgs.msg import Odometry
 from tf_transformations import euler_from_quaternion
 
 import pandas as pd
+import numpy as np
+if not hasattr(np, 'float'): # noqa
+    np.float = float # noqa
 from bayes_opt import BayesianOptimization
 from bayes_opt.acquisition import ExpectedImprovement
 from bayes_opt.event import Events
@@ -25,10 +28,9 @@ from .tuner_helpers import (
     calculate_settling_time,
     results_columns,
 )
-from .tuner_utils import load_init_states
+from .tuner_loader import load_init_states
 
 logger = logging.getLogger(__name__)
-
 
 class BayesianOptimizer:
     """
@@ -289,7 +291,7 @@ class BayesianOptimizer:
         For demonstration, we replicate the 'short-lived node' logic from the DE example.
         """
         kp, ki, kd = gains
-        rclpy.init()
+        # rclpy.init()
 
         node = ShortBayesExperimentNode(
             kp, ki, kd,
@@ -307,7 +309,7 @@ class BayesianOptimizer:
 
         node.stop_robot()
         node.destroy_node()
-        rclpy.shutdown()
+        # rclpy.shutdown()
 
         # error_values = [a - self.set_point for a in angle_values]
         # But we only need angle_values. Return them as second item

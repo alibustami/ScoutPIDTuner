@@ -11,6 +11,7 @@ setup(
         ('share/ament_index/resource_index/packages',
          ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'config'), ['config/tuner_config.yaml']),
         (os.path.join('share', package_name), ['pid_tuning/init_states.json']),
     ],
     install_requires=['setuptools'],
@@ -21,8 +22,9 @@ setup(
     license='Apache License 2.0',
     entry_points={
         'console_scripts': [
-            # e.g. "ros2 run pid_tuning pid_tuner" will run "pid_tuning.pid_tuner:main"
             'pid_tuner = pid_tuning.pid_tuner:main',
+            'tester = pid_tuning.tester:main',
         ],
     },
+    include_package_data=True,
 )

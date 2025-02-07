@@ -1,11 +1,10 @@
 """This module contains functions to load tuner-related configurations from YAML."""
-
 import os
 from pathlib import Path
 from typing import Any
 
 import yaml
-
+from ament_index_python.packages import get_package_share_directory
 
 def load_yaml() -> dict:
     """
@@ -21,8 +20,10 @@ def load_yaml() -> dict:
     FileNotFoundError
         If tuner_config.yaml is not found in the expected path.
     """
-    # Adjust if your config file is named differently or in another location
-    yaml_path = Path(__file__).parent.parent / "config" / "tuner_config.yaml"
+    # Use ament_index_python to locate the package share directory
+    package_share = get_package_share_directory('pid_tuning')
+    yaml_path = Path(package_share) / "config" / "tuner_config.yaml"
+    print(f"Loading YAML from: {yaml_path}")
     if not yaml_path.is_file():
         raise FileNotFoundError(f"No file found at {yaml_path}")
 
@@ -30,7 +31,6 @@ def load_yaml() -> dict:
         cfg_dict = yaml.safe_load(cfg_file)
 
     return cfg_dict if cfg_dict else {}
-
 
 def get_config(config_name: str) -> Any:
     """
