@@ -22,11 +22,18 @@ build:
 	colcon build --merge-install --symlink-install
 
 launch:
-	# sudo ip link set ${CAN_PORT} type can bitrate 500000 && \
-	# sudo ip link set ${CAN_PORT} up && \
+	if sudo ip link set ${CAN_PORT} type can bitrate 500000 && \
+	sudo ip link set ${CAN_PORT} up; then \
+		echo "CAN port ${CAN_PORT} is up"; \
+	else \
+		echo "CAN port ${CAN_PORT} is already up"; \
+	fi && \
 	source install/setup.bash && \
 	ros2 launch scout_base scout_base.launch.py is_omni_wheel:=true is_scout_mini:=true port_name:=${CAN_PORT}
 
 run:
 	source install/setup.bash && \
 	ros2 run pid_tuning pid_tuner
+
+get-launched:
+	ps aux | grep ros2
