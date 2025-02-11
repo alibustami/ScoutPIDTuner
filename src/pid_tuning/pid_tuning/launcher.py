@@ -4,6 +4,7 @@ import os
 import signal
 import time
 import sys
+from typing import Optional
 
 class Ros2Launcher:
     def __init__(self, can_port: str = None):
@@ -43,6 +44,8 @@ class Ros2Launcher:
         Launches the ROS2 process after sourcing the ROS2 environment.
         Returns the subprocess.Popen object representing the launch process.
         """
+        self.setup_can_port()
+        time.sleep(3)
         launch_cmd = (
             "source install/setup.bash && "
             f"ros2 launch scout_base scout_base.launch.py "
@@ -65,20 +68,20 @@ class Ros2Launcher:
         try:
             os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
             print("ROS2 launch process terminated.")
+            self.process.wait(timeout=5)
         except Exception as e:
             print(f"Error terminating ROS2 process: {e}", file=sys.stderr)
         finally:
-            # self.teardown_can_port()
-            time.sleep(2)
-            # Reset the process variable
+            self.teardown_can_port(delay=1)
             self.process = None
-            # Bring down the CAN port
 
-    # def teardown_can_port(self) -> None:
-    #     """
-    #     Bring down the CAN port using shell commands.
-    #     """
-    #     teardown_cmd = f"sudo ip link set {self.can_port} down"
-    #     print(f"Tearing down CAN port with command: {teardown_cmd}")
-    #     subprocess.run(teardown_cmd, shell=True, executable='/bin/bash')
-    #     print(f"CAN port {self.can_port} is down")
+    def teardown_can_port(self, delay: Optional[int] = None) -> None:
+        """
+        Bring down the CAN port using shell commands.
+        """
+        teardown_cmd = f"sudo ip link set {self.can_port} down"
+        print(f"Tearing down CAN port with command: {teardown_cmd}")
+        subprocess.run(teardown_cmd, shell=True, executable='/bin/bash')
+        if delay is not None:
+            time.sleep(delay)
+        print(f"CAN port {self.can_port} is down")

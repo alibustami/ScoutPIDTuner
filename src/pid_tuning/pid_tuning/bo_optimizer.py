@@ -93,7 +93,7 @@ class BayesianOptimizer:
         # DataFrame to store experiment logs
         self.results_df = pd.DataFrame(columns=results_columns)
 
-        # Create directory for logs
+        # Create directory for logs target angle
         self.log_dir = "BO-results"
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)

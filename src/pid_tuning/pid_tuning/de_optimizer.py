@@ -7,16 +7,23 @@ from datetime import datetime
 from functools import lru_cache
 from random import randint
 from typing import Dict, List, OrderedDict, Tuple, Union
+import logging
 
+logger = logging.getLogger(__name__)
 import numpy as np
 
 if not hasattr(np, "float"):  # noqa
     np.float = float  # noqa
+
+
+# matplotlib.use("TkAgg")  # noqa
+import matplotlib.pyplot as plt
 import pandas as pd
 import rclpy
 from scipy.optimize import NonlinearConstraint, differential_evolution
-from .launcher import Ros2Launcher
+
 from .experiment_node import ShortExperimentNode
+from .launcher import Ros2Launcher
 from .tuner_helpers import (
     calculate_relative_overshoot,
     calculate_rise_time,
@@ -169,13 +176,15 @@ class DifferentialEvolutionOptimizer:
             )
         else:
             constraint_obj = None
+        logger.info(f"Constraints lOWER: {lower_constraint_bounds}")
+        logger.info(f"Constraints UPPER: {upper_constraint_bounds}")
 
         self.optimizer = differential_evolution(
             func=self.objective_function,
             bounds=list(self.parameters_bounds.values()),
             maxiter=self.n_iter,
             popsize=15,
-            init=initial_population,
+            init=initial_population[:],
             strategy="rand1bin",
             mutation=selected_mutation,
             recombination=selected_recombination,
@@ -198,6 +207,12 @@ class DifferentialEvolutionOptimizer:
         self.trials_counter += 1
         kp, ki, kd = inputs
         _, angle_values = self._run_experiment((kp, ki, kd))
+        plt.plot(angle_values, color='b')
+        plt.axhline(y=self.set_point, color="r", linestyle="--")
+        # add window title for the GUI popup
+        plt.title(f"Trial {self.trials_counter}")
+        plt.show()
+
 
         overshoot = calculate_relative_overshoot(angle_values, self.set_point)
         rise_time = calculate_rise_time(angle_values, self.set_point)
@@ -296,27 +311,27 @@ class DifferentialEvolutionOptimizer:
         end_time = time.time() + (self.experiment_total_run_time / 1000.0)
 
         while (
-            rclpy.ok() and (time.time() < end_time) and not node.done_rotating
+            rclpy.ok() and (time.time() < end_time)
+            # rclpy.ok() and (time.time() < end_time) and not node.done_rotating
         ):
             rclpy.spin_once(node, timeout_sec=0.05)
             angle_values.append(node.continuous_yaw_deg)
         self.last_experiment_set_point = node.target_angle_deg
-        # print("=" * 40)
-        # print(angle_values)
-        # print(self.last_experiment_set_point)
-        # print("=" * 40)
         error_values = [
             angle - self.last_experiment_set_point for angle in angle_values
         ]
         node.stop_robot()
 
         node.destroy_node()
-        time.sleep(1)
+        time.sleep(3)
 
         # rclpy.shutdown()
         self.launcher.kill_ros2_launch()
-        time.sleep(1)
-
+        time.sleep(3)
+        ## Log the error values
+        # logger.info(f"Error values: {error_values}")
+        logger.info(f"Angle values: {angle_values}\n")
+        
         return error_values, angle_values
 
     def log_trial_results(

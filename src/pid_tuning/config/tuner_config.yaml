@@ -3,18 +3,18 @@ tuner:
     kp_lower_bound: 1
     kp_upper_bound: 25
     ki_lower_bound: 0.0
-    ki_upper_bound: 1.0
+    ki_upper_bound: 0.06
     kd_lower_bound: 0.0
     kd_upper_bound: 1.0
 
   constraint:
     overshoot_lower_bound: 0.0
-    overshoot_upper_bound: 30
+    overshoot_upper_bound: 100
     rise_time_lower_bound: 0.0
-    rise_time_upper_bound: 1000 # ms
+    rise_time_upper_bound: 9000 # ms
 
   n_iterations: 150
-  experiment_total_run_time: 5000 # ms
+  experiment_total_run_time: 10000 # ms
   setpoint: 90
 
 

@@ -28,6 +28,7 @@ class Tester(Node):
         _, _, yaw = euler_from_quaternion([q.x, q.y, q.z, q.w])
         raw_yaw_deg = math.degrees(yaw)
 
+        # self.get_logger().info(f"Raw Yaw: {raw_yaw_deg:.2f}°")
         # 2) If it's our first message, just init everything
         if self.prev_raw_yaw_deg is None:
             self.prev_raw_yaw_deg = raw_yaw_deg
@@ -36,9 +37,9 @@ class Tester(Node):
             if not self.is_target_fixed:
                 self.target_continuous_deg = raw_yaw_deg + 90.0
                 self.is_target_fixed = True
-                self.get_logger().info(
-                    f"Target angle fixed to current+90 = {self.target_continuous_deg:.2f}°"
-                )
+                # self.get_logger().info(
+                #     f"Target angle fixed to current+90 = {self.target_continuous_deg:.2f}°"
+                # )
         else:
             # 3) “Unwrap” the angle so it is continuous:
             #    - compute difference
@@ -60,13 +61,13 @@ class Tester(Node):
 
         self.get_logger().info(
             f"Continuous Yaw: {self.continuous_yaw_deg:.2f}°, "
-            f"Target: {self.target_continuous_deg:.2f}°" if self.target_continuous_deg else ""
+            # f"Target: {self.target_continuous_deg:.2f}°" if self.target_continuous_deg else ""
         )
 
         # The “error” for a PID might be:
         if self.is_target_fixed:
             error = self.continuous_yaw_deg - self.target_continuous_deg
-            self.get_logger().info(f"Yaw Error = {error:.2f}°")
+            # self.get_logger().info(f"Yaw Error = {error:.2f}°")
 
 def main():
     rclpy.init()
