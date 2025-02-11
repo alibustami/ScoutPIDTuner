@@ -37,3 +37,9 @@ run:
 
 get-launched:
 	ps aux | grep ros2
+
+kill-can:
+	sudo ip link set ${CAN_PORT} down
+
+
+	
