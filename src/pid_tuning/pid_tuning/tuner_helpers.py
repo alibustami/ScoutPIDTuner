@@ -71,7 +71,8 @@ def calculate_settling_time(
     angle_values: List[float],
     final_value: float,
     tolerance: float = 0.05,
-    per_value_time: int = 100,
+    # per_value_time: int = 100,
+    total_time: int = 10000,
 ) -> float:
     """
     Calculate the settling time of a system response in milliseconds.
@@ -105,7 +106,8 @@ def calculate_settling_time(
 
     # Start from the end and move backward
     i = len(angle_values) - 1
-    total_time = per_value_time * len(angle_values)
+    per_value_time = total_time / len(angle_values)
+    # total_time = per_value_time * len(angle_values)
 
     while i >= 0:
         val = angle_values[i]

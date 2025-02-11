@@ -9,9 +9,9 @@ tuner:
 
   constraint:
     overshoot_lower_bound: 0.0
-    overshoot_upper_bound: 100
+    overshoot_upper_bound: 40
     rise_time_lower_bound: 0.0
-    rise_time_upper_bound: 9000 # ms
+    rise_time_upper_bound: 7000 # ms
 
   n_iterations: 150
   experiment_total_run_time: 10000 # ms

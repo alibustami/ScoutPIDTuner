@@ -209,9 +209,11 @@ class DifferentialEvolutionOptimizer:
         _, angle_values = self._run_experiment((kp, ki, kd))
         plt.plot(angle_values, color='b')
         plt.axhline(y=self.set_point, color="r", linestyle="--")
-        # add window title for the GUI popup
+        
         plt.title(f"Trial {self.trials_counter}")
-        plt.show()
+        plt.draw()
+        plt.pause(2)
+        plt.close()
 
 
         overshoot = calculate_relative_overshoot(angle_values, self.set_point)
@@ -289,7 +291,6 @@ class DifferentialEvolutionOptimizer:
          4) Run for a set duration or until within tolerance
          5) Return angle_values list for offline metrics
         """
-
         # Gains
         kp, ki, kd = gains
         # ANGULAR_SPEED_LIMIT = 100.0   # or whatever
@@ -303,6 +304,7 @@ class DifferentialEvolutionOptimizer:
         # rclpy.init()
         self.launcher.launch_ros2()
         time.sleep(3)
+        self.experiment_start_time = time.time()
         node = ShortExperimentNode(kp, ki, kd, TOLERANCE_DEG)
         # time.sleep(1)
 
@@ -316,6 +318,9 @@ class DifferentialEvolutionOptimizer:
         ):
             rclpy.spin_once(node, timeout_sec=0.05)
             angle_values.append(node.continuous_yaw_deg)
+        self.experiment_end_time = time.time()
+
+        self.total_experiemnt_time = self.experiment_end_time - self.experiment_start_time
         self.last_experiment_set_point = node.target_angle_deg
         error_values = [
             angle - self.last_experiment_set_point for angle in angle_values
