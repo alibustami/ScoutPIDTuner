@@ -7,7 +7,6 @@ from datetime import datetime
 from functools import lru_cache
 from random import randint
 from typing import Dict, List, OrderedDict, Tuple, Union
-import logging
 
 logger = logging.getLogger(__name__)
 import numpy as np
@@ -207,6 +206,8 @@ class DifferentialEvolutionOptimizer:
         self.trials_counter += 1
         kp, ki, kd = inputs
         _, angle_values = self._run_experiment((kp, ki, kd))
+        # time_array = np.linspace(0, int(self.total_experiemnt_time), len(angle_values), dtype=np.int32)
+        # plt.plot(time_array, angle_values, color='b')
         plt.plot(angle_values, color='b')
         plt.axhline(y=self.set_point, color="r", linestyle="--")
         
@@ -313,14 +314,17 @@ class DifferentialEvolutionOptimizer:
         end_time = time.time() + (self.experiment_total_run_time / 1000.0)
 
         while (
-            rclpy.ok() and (time.time() < end_time)
+            rclpy.ok()
+            and (time.time() < end_time)
             # rclpy.ok() and (time.time() < end_time) and not node.done_rotating
         ):
             rclpy.spin_once(node, timeout_sec=0.05)
             angle_values.append(node.continuous_yaw_deg)
         self.experiment_end_time = time.time()
 
-        self.total_experiemnt_time = self.experiment_end_time - self.experiment_start_time
+        self.total_experiemnt_time = (
+            self.experiment_end_time - self.experiment_start_time
+        )
         self.last_experiment_set_point = node.target_angle_deg
         error_values = [
             angle - self.last_experiment_set_point for angle in angle_values
@@ -336,7 +340,7 @@ class DifferentialEvolutionOptimizer:
         ## Log the error values
         # logger.info(f"Error values: {error_values}")
         logger.info(f"Angle values: {angle_values}\n")
-        
+
         return error_values, angle_values
 
     def log_trial_results(
