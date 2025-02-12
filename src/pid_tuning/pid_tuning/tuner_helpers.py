@@ -125,7 +125,8 @@ def calculate_settling_time(
 def calculate_rise_time(
     angle_values: List[float],
     set_point: float,
-    per_value_time: int = 100
+    # per_value_time: int = 100
+    total_time: int = 10000,
 ) -> float:
     """
     Calculate rise time (0% -> 63% of set_point) in milliseconds.
@@ -148,6 +149,7 @@ def calculate_rise_time(
         The rise time in milliseconds.
         If we never reach 63% of set_point, returns a large number (100000).
     """
+    per_value_time = total_time / len(angle_values)
     if not angle_values:
         raise ValueError("angle_values list cannot be empty for rise time calculation.")
     if abs(set_point) < 1e-9:
