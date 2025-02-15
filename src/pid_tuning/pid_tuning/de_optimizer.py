@@ -139,28 +139,29 @@ class DifferentialEvolutionOptimizer:
         ]
 
         # Example initial population
+        total_population = 5
         initial_population = np.array(
             [
                 self.init_state,
                 [
-                    randint(1, 25),
-                    randint(0, 100) / 100.0,
-                    randint(0, 100) / 100.0,
+                    randint(1, 25 // total_population * 1),
+                    randint(0, 100 // total_population * 1) / 100.0,
+                    randint(0, 100 // total_population * 1) / 100.0,
                 ],
                 [
-                    randint(1, 25),
-                    randint(0, 100) / 100.0,
-                    randint(0, 100) / 100.0,
+                    randint(1, 25 // total_population * 2),
+                    randint(0, 100 // total_population * 2) / 100.0,
+                    randint(0, 100 // total_population * 2) / 100.0,
                 ],
                 [
-                    randint(1, 25),
-                    randint(0, 100) / 100.0,
-                    randint(0, 100) / 100.0,
+                    randint(1, 25 // total_population * 3),
+                    randint(0, 100 // total_population * 3) / 100.0,
+                    randint(0, 100 // total_population * 3) / 100.0,
                 ],
                 [
-                    randint(1, 25),
-                    randint(0, 100) / 100.0,
-                    randint(0, 100) / 100.0,
+                    randint(1, 25 // total_population * 4),
+                    randint(0, 100 // total_population * 4) / 100.0,
+                    randint(0, 100 // total_population * 4) / 100.0,
                 ],
             ],
             dtype=np.float32,
