@@ -122,6 +122,7 @@ def select_optimizer(selected_optimizer: str) -> Union[DifferentialEvolutionOpti
     experiment_total_run_time = get_config("tuner.experiment_total_run_time")
     selected_init_state = get_config("tuner.init_state")
     selected_config = get_config("tuner.configuration")
+    objective_value_limit_early_stop = get_config("tuner.objective_value_limit_early_stop")
 
     if selected_optimizer == "BO":
         optimizer = BayesianOptimizer(
@@ -132,7 +133,7 @@ def select_optimizer(selected_optimizer: str) -> Union[DifferentialEvolutionOpti
             experiment_total_run_time=experiment_total_run_time,
             experiment_values_dump_rate=100,
             selected_init_state=selected_init_state,
-            objective_value_limit_early_stop=2500,
+            objective_value_limit_early_stop=objective_value_limit_early_stop,
             selected_config=selected_config,
         )
     elif selected_optimizer == "DE":
