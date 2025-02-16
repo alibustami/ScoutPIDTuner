@@ -209,14 +209,13 @@ class DifferentialEvolutionOptimizer:
         _, angle_values = self._run_experiment((kp, ki, kd))
         # time_array = np.linspace(0, int(self.total_experiemnt_time), len(angle_values), dtype=np.int32)
         # plt.plot(time_array, angle_values, color='b')
-        plt.plot(angle_values, color='b')
+        plt.plot(angle_values, color="b")
         plt.axhline(y=self.set_point, color="r", linestyle="--")
-        
+
         plt.title(f"Trial {self.trials_counter}")
         plt.draw()
         plt.pause(2)
         plt.close()
-
 
         overshoot = calculate_relative_overshoot(angle_values, self.set_point)
         rise_time = calculate_rise_time(angle_values, self.set_point)
