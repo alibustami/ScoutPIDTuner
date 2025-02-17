@@ -4,12 +4,13 @@ import sys
 import time
 from datetime import datetime
 from functools import lru_cache
+from random import randint
 from typing import Dict, List, OrderedDict, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import rclpy
-from bayes_opt.event import Events
 
 if not hasattr(np, "float"):  # noqa
     np.float = float  # noqa
@@ -19,6 +20,7 @@ from bayes_opt.event import Events
 from scipy.optimize import NonlinearConstraint
 
 from .experiment_node import ShortExperimentNode
+from .launcher import Ros2Launcher
 from .tuner_helpers import (
     calculate_relative_overshoot,
     calculate_rise_time,
@@ -104,6 +106,8 @@ class BayesianOptimizer:
             f"{timestamp}_init_{self.selected_init_state}_bo.csv",
         )
         self.trials_counter = 0
+        self.last_experiment_set_point = None
+        self.launcher = Ros2Launcher(can_port="can1")
 
     def run(self, exp_start_time: float) -> None:
         """
@@ -122,9 +126,10 @@ class BayesianOptimizer:
         )
 
         # TODO: add probes 4 cases
+        # total_pop?
 
         # Start the optimization
-        init_points = 0  # how many random points before the real optimization
+        init_points = 5  # how many random points before the real optimization
         self.optimizer.maximize(n_iter=self.n_iter, init_points=init_points)
 
         best_result = self.optimizer.max
@@ -145,6 +150,13 @@ class BayesianOptimizer:
 
         kp, ki, kd = inputs["Kp"], inputs["Ki"], inputs["Kd"]
         _, angle_values = self._run_experiment((kp, ki, kd))
+        plt.plot(angle_values, color="b")
+        plt.axhline(y=self.set_point, color="r", linestyle="--")
+
+        plt.title(f"Trial {self.trials_counter}")
+        plt.draw()
+        plt.pause(2)
+        plt.close()
 
         overshoot = calculate_relative_overshoot(angle_values, self.set_point)
         rise_time = calculate_rise_time(angle_values, self.set_point)
@@ -321,30 +333,47 @@ class BayesianOptimizer:
         """
         kp, ki, kd = gains
         # rclpy.init()
-
-        node = ShortExperimentNode(
-            kp,
-            ki,
-            kd,
-            target_angle_deg=self.set_point,
-            angular_speed_limit=0.5,
-            tolerance_deg=2.0,
-        )
-
+        TOLERANCE_DEG = 2.0
         angle_values = []
+        self.launcher.launch_ros2()
+        time.sleep(3)
+        self.experiment_start_time = time.time()
+        node = ShortExperimentNode(kp, ki, kd, TOLERANCE_DEG)
+        # time.sleep(1)
+
+        # 2) Spin for the desired total_run_time (ms) or until done
+        #    We'll break early if the node sets "done" flag
         end_time = time.time() + (self.experiment_total_run_time / 1000.0)
 
-        while rclpy.ok() and time.time() < end_time and not node.done_rotating:
+        while (
+            rclpy.ok()
+            and (time.time() < end_time)
+            # rclpy.ok() and (time.time() < end_time) and not node.done_rotating
+        ):
             rclpy.spin_once(node, timeout_sec=0.05)
-            angle_values.append(node.current_heading_deg)
+            angle_values.append(node.continuous_yaw_deg)
+        self.experiment_end_time = time.time()
 
+        self.total_experiemnt_time = (
+            self.experiment_end_time - self.experiment_start_time
+        )
+        self.last_experiment_set_point = node.target_angle_deg
+        error_values = [
+            angle - self.last_experiment_set_point for angle in angle_values
+        ]
         node.stop_robot()
-        node.destroy_node()
-        # rclpy.shutdown()
 
-        # error_values = [a - self.set_point for a in angle_values]
-        # But we only need angle_values. Return them as second item
-        return [], angle_values
+        node.destroy_node()
+        time.sleep(3)
+
+        # rclpy.shutdown()
+        self.launcher.kill_ros2_launch()
+        time.sleep(3)
+        ## Log the error values
+        # logger.info(f"Error values: {error_values}")
+        logger.info(f"Angle values: {angle_values}\n")
+
+        return error_values, angle_values
 
     def log_trial_results(
         self,
